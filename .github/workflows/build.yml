@@ -1,0 +1,49 @@
+on:
+  push:
+    branches:
+      - "main"
+    # paths:
+    #   - ".github/workflows/build.yml"
+  schedule:
+    - cron: "0 0 * * 0"
+
+name: build
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Install Requirements
+        run: |
+          sudo apt update
+          sudo apt install -y curl jq
+      - name: Generate get-last-error.cna
+        run: |-
+          bash <<CC > get-last-error.cna
+          # Header
+          cat <<EOF
+          beacon_command_register(
+              "get-last-error", 
+              "Resolve GetLastError message numbers to text on CS client side", 
+              "Use: get-last-error error-number" .
+              "\n\n" .
+              "Resolve GetLastError message numbers to text on CS client side. Does not execute anything on a beacon."
+          )
+          alias get-last-error {
+              local('%msg');
+          EOF
+          # Generate message hash table
+          curl https://raw.githubusercontent.com/Henkru/windows-lasterror-json/main/all.json | jq -r '.[]|("    %msg[" + (.code|tostring) + "] = %(title =>\"" + .title + "\", msg => \"" + (.msg|gsub("[\\\\n\\\\t]"; "")|gsub("[$]"; "\\\\$")) + "\");")'
+          # Footer
+          cat <<EOF
+              btask(\\\$1, %msg[\\\$2]['title'] . "\n\n" . %msg[\\\$2]['msg']);
+          }
+          EOF
+          CC
+      - name: commit
+        uses: EndBug/add-and-commit@v7
+        with:
+          add: get-last-error.cna
+          default_author: github_actions
+          message: Update ${{ matrix.files.name}}
