@@ -2,8 +2,8 @@ on:
   push:
     branches:
       - "main"
-    # paths:
-    #   - ".github/workflows/build.yml"
+    paths:
+      - ".github/workflows/build.yml"
   schedule:
     - cron: "0 0 * * 0"
 
@@ -46,4 +46,4 @@ jobs:
         with:
           add: get-last-error.cna
           default_author: github_actions
-          message: Update ${{ matrix.files.name}}
+          message: Update error messages
